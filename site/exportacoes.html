@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportações | Portal Solicitação de Reversa</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="logo-pulse-container">
+                <img src="../logo.png" alt="Logo" class="loading-logo">
+            </div>
+            <div class="progress-wrapper">
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <span id="loadingPercentage" class="loading-percentage">0%</span>
+            </div>
+            <p class="loading-text">Sincronizando dados...</p>
+        </div>
+    </div>
+
+    <header class="top-header">
+        <div class="brand">
+            <img src="../logo.png" alt="Logo do portal" class="logo">
+            <h1>PORTAL SOLICITAÇÃO DE REVERSA</h1>
+        </div>
+        <nav class="top-nav">
+            <a href="index.html" class="nav-link">Solicitações</a>
+            <a href="notas.html" class="nav-link">Notas</a>
+            <a href="exportacoes.html" class="nav-link active">Exportações</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="portal-layout">
+            <section class="portal-panel">
+                <div class="form-header">
+                    <div class="icon-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                    </div>
+                    <div class="header-text">
+                        <h1>Exportações</h1>
+                        <p>Compare Reversa x Atlas e exporte o resultado final.</p>
+                    </div>
+                </div>
+
+                <section class="form-section">
+                    <h3 class="section-title">Sincronização via banco de dados</h3>
+                    <p class="section-hint">Regra fixa: a tabela <strong>reversa</strong> será cruzada com a <strong>base_atlas</strong>, comparando o serial da reversa com o campo <strong>enderecavel_principal</strong> do Atlas.</p>
+                </section>
+
+                <section class="form-section">
+                    <div class="form-actions export-actions">
+                        <button type="button" class="submit-btn secondary-btn" id="runComparisonBtn">Sincronizar</button>
+                        <button type="button" class="submit-btn" id="downloadExportBtn" disabled>Exportar resultado</button>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h3 class="section-title">Resumo da comparação</h3>
+                    <div class="summary-grid">
+                        <div class="info-card summary-card">
+                            <h3 id="summaryTotal">0</h3>
+                            <p>Total processado</p>
+                        </div>
+                        <div class="info-card summary-card">
+                            <h3 id="summaryMatched">0</h3>
+                            <p>Encontrados no Atlas</p>
+                        </div>
+                        <div class="info-card summary-card">
+                            <h3 id="summaryMissing">0</h3>
+                            <p>Não encontrados</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h3 class="section-title">Prévia do resultado</h3>
+                    <div class="table-wrapper">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Chave</th>
+                                    <th>Status</th>
+                                    <th>Origem</th>
+                                    <th>Modelo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonPreviewBody">
+                                <tr>
+                                    <td colspan="4">Sem dados para exibição.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+                <aside class="portal-aside">
+                    <section class="info-card">
+                        <h3>Fluxo de Exportação</h3>
+                        <ul>
+                            <li>1. Clique em Sincronizar</li>
+                            <li>2. Aguarde o cruzamento no banco</li>
+                            <li>3. Revise o resumo e a prévia</li>
+                            <li>4. Exporte o resultado</li>
+                        </ul>
+                    </section>
+                </aside>
+        </section>
+        <footer>
+            <p>Sistema Interno de Logística Reversa &copy; 2026</p>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
