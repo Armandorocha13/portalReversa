@@ -272,33 +272,33 @@ function initExportacoes() {
     const filterEstado = document.getElementById('exportFilterEstado');
     const filterLocal = document.getElementById('exportFilterLocal');
     const filterEnderecavel = document.getElementById('exportFilterEnderecavel');
-    const filterModelo = document.getElementById('exportFilterModelo');
-    const filterSearch = document.getElementById('exportFilterSearch');
+    const filterOperacao = document.getElementById('exportFilterOperacao');
     const filterDate = document.getElementById('exportFilterDate');
     const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
     const filteredCountInfo = document.getElementById('filteredCountInfo');
 
-    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterModelo || !filterSearch || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
         return;
     }
 
+    const defaultReversaColumns = ['operacao', 'data_solicitacao', 'serial', 'cx', 'quantidade', 'peso', 'created_at'];
     let comparisonResults = [];
     let filteredResults = [];
-    let reversaColumns = [];
+    let reversaColumns = [...defaultReversaColumns];
     let dynamicColumnsMap = {
         estado: null,
         local: null,
-        modelo: null,
+        operacao: null,
         enderecavel: null
     };
+    updateDynamicColumnsMap(reversaColumns, 'serial');
 
     function resetFilters() {
         filterStatus.value = '';
         filterEstado.value = '';
         filterLocal.value = '';
         filterEnderecavel.value = '';
-        filterModelo.value = '';
-        filterSearch.value = '';
+        filterOperacao.value = '';
         filterDate.value = '';
     }
 
@@ -340,7 +340,7 @@ function initExportacoes() {
         dynamicColumnsMap = {
             estado: findColumnByCandidates(columns, ['estado']),
             local: findColumnByCandidates(columns, ['nome_local', 'nome_origem', 'local']),
-            modelo: findColumnByCandidates(columns, ['modelo']),
+            operacao: findColumnByCandidates(columns, ['operacao', 'operação']),
             enderecavel: findColumnByCandidates(columns, ['enderecavel_principal', 'enderecavel', serialColumn || ''])
         };
     }
@@ -348,45 +348,44 @@ function initExportacoes() {
     function populateFilterOptions(results) {
         const estadoColumn = dynamicColumnsMap.estado;
         const localColumn = dynamicColumnsMap.local;
-        const modeloColumn = dynamicColumnsMap.modelo;
+        const operacaoColumn = dynamicColumnsMap.operacao;
+        const hasAtlasData = results.some((row) => row && row.atlasData);
 
-        const estadoOptions = estadoColumn
-            ? Array.from(new Set(results
-                .map((row) => row.values[estadoColumn])
-                .filter((value) => value && value !== '-')))
-                .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-            : [];
+        const estadoOptions = Array.from(new Set(results
+            .map((row) => (estadoColumn ? row.values[estadoColumn] : (row.atlasData ? row.atlasData.estado : '')))
+            .filter((value) => value && value !== '-')))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
         const localOptions = Array.from(new Set(results
-            .map((row) => (localColumn ? row.values[localColumn] : ''))
+            .map((row) => (localColumn ? row.values[localColumn] : (row.atlasData ? row.atlasData.nome_local : '')))
             .filter((value) => value && value !== '-')))
             .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-        const modeloOptions = Array.from(new Set(results
-            .map((row) => (modeloColumn ? row.values[modeloColumn] : ''))
+        const operacaoOptions = Array.from(new Set(results
+            .map((row) => (operacaoColumn ? row.values[operacaoColumn] : ''))
             .filter((value) => value && value !== '-')))
             .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-        setFilterAvailability(filterEstado, Boolean(estadoColumn), 'Sem coluna de estado');
-        setFilterAvailability(filterLocal, Boolean(localColumn), 'Sem coluna de local');
-        setFilterAvailability(filterModelo, Boolean(modeloColumn), 'Sem coluna de modelo');
+        setFilterAvailability(filterEstado, Boolean(estadoColumn) || hasAtlasData, 'Sem coluna de estado');
+        setFilterAvailability(filterLocal, Boolean(localColumn) || hasAtlasData, 'Sem coluna de local');
+        setFilterAvailability(filterOperacao, Boolean(operacaoColumn), 'Sem coluna de operação');
 
-        if (estadoColumn) {
-            setSelectOptions(filterEstado, estadoOptions, 'Todos os estados');
+        if (Boolean(estadoColumn) || hasAtlasData) {
+            setSelectOptions(filterEstado, estadoOptions, 'Todas as situações');
         }
-        if (localColumn) {
+        if (Boolean(localColumn) || hasAtlasData) {
             setSelectOptions(filterLocal, localOptions, 'Todos os locais');
         }
-        if (modeloColumn) {
-            setSelectOptions(filterModelo, modeloOptions, 'Todos os modelos');
+        if (operacaoColumn) {
+            setSelectOptions(filterOperacao, operacaoOptions, 'Todas as operações');
         }
 
         filterEnderecavel.disabled = !dynamicColumnsMap.enderecavel;
         if (filterEnderecavel.disabled) {
             filterEnderecavel.value = '';
-            filterEnderecavel.placeholder = 'Sem coluna de endereçável/serial';
+            filterEnderecavel.placeholder = 'Sem coluna de serial';
         } else {
-            filterEnderecavel.placeholder = 'Filtrar por serial/chave';
+            filterEnderecavel.placeholder = 'Filtrar por serial';
         }
     }
 
@@ -396,8 +395,7 @@ function initExportacoes() {
             estado: filterEstado.value,
             local: filterLocal.value,
             enderecavel: filterEnderecavel.value,
-            modelo: filterModelo.value,
-            search: filterSearch.value,
+            operacao: filterOperacao.value,
             date: filterDate.value,
             columnsMap: dynamicColumnsMap
         };
@@ -418,12 +416,10 @@ function initExportacoes() {
         }
     }
 
-    [filterStatus, filterEstado, filterLocal, filterModelo].forEach((el) => {
+    [filterStatus, filterEstado, filterLocal, filterOperacao].forEach((el) => {
         el.addEventListener('change', applyComparisonFilters);
     });
-    [filterEnderecavel, filterSearch].forEach((el) => {
-        el.addEventListener('input', applyComparisonFilters);
-    });
+    filterEnderecavel.addEventListener('input', applyComparisonFilters);
     filterDate.addEventListener('change', applyComparisonFilters);
 
     clearFiltersBtn.addEventListener('click', () => {
@@ -456,6 +452,13 @@ function initExportacoes() {
             const rows = await res.json();
 
             if (rows.length === 0) {
+                comparisonResults = [];
+                filteredResults = [];
+                reversaColumns = [...defaultReversaColumns];
+                updateDynamicColumnsMap(reversaColumns, 'serial');
+                populateFilterOptions(comparisonResults);
+                resetFilters();
+                applyComparisonFilters();
                 alert('A tabela reversa está vazia. Importe dados antes de sincronizar.');
                 showLoading(false);
                 runBtn.disabled = false;
@@ -467,7 +470,7 @@ function initExportacoes() {
 
             // MAPEIA OS DADOS DA VIEW PARA O FORMATO DA INTERFACE
             // Colunas da reversa (originais)
-            reversaColumns = ['operacao', 'data_solicitacao', 'serial', 'cx', 'quantidade', 'peso', 'created_at'];
+            reversaColumns = [...defaultReversaColumns];
             const reversaSerialColumn = 'serial';
             
             updateDynamicColumnsMap(reversaColumns, reversaSerialColumn);
@@ -495,8 +498,8 @@ function initExportacoes() {
         } catch (error) {
             comparisonResults = [];
             filteredResults = [];
-            reversaColumns = [];
-            updateDynamicColumnsMap(reversaColumns, null);
+            reversaColumns = [...defaultReversaColumns];
+            updateDynamicColumnsMap(reversaColumns, 'serial');
             populateFilterOptions(comparisonResults);
             resetFilters();
             applyComparisonFilters();
@@ -720,17 +723,18 @@ function compareRows(reversaRows, atlasRows, field, columns) {
 function getFilteredComparisonResults(results, filters, columns) {
     const estadoColumn = filters.columnsMap.estado;
     const localColumn = filters.columnsMap.local;
-    const modeloColumn = filters.columnsMap.modelo;
+    const operacaoColumn = filters.columnsMap.operacao;
     const enderecavelColumn = filters.columnsMap.enderecavel;
     const enderecavelNeedle = normalizeText(filters.enderecavel);
-    const searchNeedle = normalizeText(filters.search);
     const filterDateValue = filters.date;
 
     return results.filter((row) => {
         if (filters.status && row.status !== filters.status) return false;
-        if (filters.estado && estadoColumn && row.values[estadoColumn] !== filters.estado) return false;
-        if (filters.local && localColumn && row.values[localColumn] !== filters.local) return false;
-        if (filters.modelo && modeloColumn && row.values[modeloColumn] !== filters.modelo) return false;
+        const estadoValue = estadoColumn ? row.values[estadoColumn] : row.atlasData.estado;
+        const localValue = localColumn ? row.values[localColumn] : row.atlasData.nome_local;
+        if (filters.estado && estadoValue !== filters.estado) return false;
+        if (filters.local && localValue !== filters.local) return false;
+        if (filters.operacao && operacaoColumn && row.values[operacaoColumn] !== filters.operacao) return false;
 
         if (enderecavelNeedle && enderecavelColumn && !normalizeText(row.values[enderecavelColumn]).includes(enderecavelNeedle)) {
             return false;
@@ -739,16 +743,8 @@ function getFilteredComparisonResults(results, filters, columns) {
         if (filterDateValue) {
             // Tenta encontrar uma coluna de data
             const dateColumn = columns.find(c => normalizeKey(c).includes('data'));
-            if (dateColumn && row.values[dateColumn] !== filterDateValue) {
-                return false;
-            }
-        }
-
-        if (searchNeedle) {
-            const rowValues = columns.map((column) => row.values[column]).join(' ');
-            const atlasValues = [row.atlasData.estado, row.atlasData.nome_local].join(' ');
-            const haystack = normalizeText([row.status, rowValues, atlasValues].join(' '));
-            if (!haystack.includes(searchNeedle)) {
+            const normalizedFilterDate = formatDate(filterDateValue);
+            if (dateColumn && row.values[dateColumn] !== normalizedFilterDate) {
                 return false;
             }
         }

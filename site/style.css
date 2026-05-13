@@ -646,6 +646,10 @@ input[type="text"]:focus {
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.preview-section {
+    padding-inline: 24px;
+}
+
 .filters-container {
     display: flex;
     flex-direction: column;
@@ -967,6 +971,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     .section-header-inline {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .preview-section {
+        padding-inline: 0;
     }
 }
 
