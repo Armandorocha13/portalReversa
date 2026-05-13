@@ -374,6 +374,11 @@ label {
     grid-template-columns: repeat(2, 1fr);
 }
 
+.grid-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
 .emis-section {
     border: 1px solid #dddddd;
     border-radius: 12px;
@@ -392,6 +397,7 @@ label {
 }
 
 select,
+input[type="text"],
 input[type="date"],
 input[type="number"] {
     width: 100%;
@@ -430,6 +436,7 @@ select {
 }
 
 select:focus,
+input[type="text"]:focus,
 input[type="date"]:focus,
 input[type="number"]:focus {
     border-color: rgba(30, 61, 124, 0.8);
@@ -478,6 +485,24 @@ input[type="number"]:focus {
 .export-actions {
     justify-content: center;
     gap: 24px;
+}
+
+.filter-section {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.filter-actions {
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.filter-actions .submit-btn {
+    width: auto;
+    min-width: 180px;
+    margin-top: 0;
 }
 
 .export-actions .submit-btn {
@@ -730,12 +755,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     .summary-grid {
         grid-template-columns: 1fr;
     }
+
+    .grid-filters {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 @media (max-width: 560px) {
     .grid-request,
     .grid-metrics,
-    .grid-emis {
+    .grid-emis,
+    .grid-filters {
         grid-template-columns: 1fr;
     }
 
