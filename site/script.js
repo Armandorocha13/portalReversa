@@ -276,8 +276,10 @@ function initExportacoes() {
     const filterDate = document.getElementById('exportFilterDate');
     const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
     const filteredCountInfo = document.getElementById('filteredCountInfo');
+    const exportConnectBtn = document.getElementById('exportConnectBtn');
+    const exportQualitorBtn = document.getElementById('exportQualitorBtn');
 
-    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !exportQualitorBtn) {
         return;
     }
 
@@ -404,10 +406,8 @@ function initExportacoes() {
         renderComparison(filteredResults, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, reversaColumns);
         
         const hasResults = filteredResults.length > 0;
-        const connectBtn = document.getElementById('exportConnectBtn');
-        const qualitorBtn = document.getElementById('exportQualitorBtn');
-        if (connectBtn) connectBtn.disabled = !hasResults;
-        if (qualitorBtn) qualitorBtn.disabled = !hasResults;
+        exportConnectBtn.disabled = !hasResults;
+        exportQualitorBtn.disabled = !hasResults;
         
         const badge = document.getElementById('filteredCountInfo');
         if (badge) {
@@ -426,6 +426,160 @@ function initExportacoes() {
         resetFilters();
         applyComparisonFilters();
     });
+
+    function getPreviousWeekInfo(referenceDate = new Date()) {
+        const infoDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+        let month = infoDate.getMonth() + 1;
+        let week = Math.ceil(infoDate.getDate() / 7) - 1;
+
+        if (week < 1) {
+            const prevMonthDate = new Date(infoDate.getFullYear(), infoDate.getMonth(), 0);
+            month = prevMonthDate.getMonth() + 1;
+            week = Math.ceil(prevMonthDate.getDate() / 7);
+        }
+
+        return { week, month };
+    }
+
+    function sanitizeFileNamePart(value) {
+        return String(value || '')
+            .trim()
+            .replace(/[<>:"/\\|?*]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .toUpperCase();
+    }
+
+    function resolveExportBaseName(results, selectedLocal) {
+        const selected = sanitizeFileNamePart(selectedLocal);
+        if (selected) return selected;
+
+        const uniqueLocals = Array.from(new Set(
+            results
+                .map((row) => sanitizeFileNamePart(row && row.atlasData ? row.atlasData.nome_local : ''))
+                .filter((value) => value && value !== '-')
+        ));
+
+        if (uniqueLocals.length === 1) {
+            return uniqueLocals[0];
+        }
+
+        return 'BASE';
+    }
+
+    function buildExportFileName(results) {
+        const { week, month } = getPreviousWeekInfo(new Date());
+        const baseName = resolveExportBaseName(results, filterLocal.value);
+        return `S${week}M${month}_${baseName}.xlsx`;
+    }
+
+    function buildExportRows(results, columns) {
+        return results.map((row) => {
+            const rowData = {};
+            columns.forEach((column) => {
+                if (column === 'created_at') {
+                    rowData.DATA = row.values[column];
+                } else {
+                    rowData[formatColumnLabel(column)] = row.values[column];
+                }
+            });
+            rowData['SITUAÇÃO ATLAS'] = row.atlasData.estado;
+            rowData['LOCAL ATLAS'] = row.atlasData.nome_local;
+            rowData.ENCONTRADO = row.status;
+            return rowData;
+        });
+    }
+
+    function exportFilteredResults() {
+        if (!filteredResults.length) {
+            alert('Não há dados para exportar.');
+            return;
+        }
+
+        const workbook = XLSX.utils.book_new();
+        const rowsForExport = buildExportRows(filteredResults, reversaColumns);
+        const worksheet = XLSX.utils.json_to_sheet(rowsForExport);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Exportacao');
+        XLSX.writeFile(workbook, buildExportFileName(filteredResults));
+    }
+
+    async function fetchSapMapForSerials(serials) {
+        const validSerials = Array.from(new Set(
+            serials
+                .map((value) => String(value || '').trim())
+                .filter((value) => value !== '' && value !== '-')
+        ));
+
+        const sapMap = new Map();
+        if (!validSerials.length) return sapMap;
+
+        const chunkSize = 80;
+        for (let i = 0; i < validSerials.length; i += chunkSize) {
+            const chunk = validSerials.slice(i, i + chunkSize);
+            const encodedValues = chunk.map((serial) => `"${String(serial).replace(/"/g, '""')}"`).join(',');
+            const query = `${SUPABASE_URL}/rest/v1/base_atlas?select=enderecavel_principal,codigo_fornecedor_sap&enderecavel_principal=in.(${encodeURIComponent(encodedValues)})`;
+
+            const response = await fetch(query, {
+                method: 'GET',
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+
+            if (!response.ok) {
+                const body = await response.text();
+                throw new Error(`Falha ao buscar SAP na base_atlas: ${body}`);
+            }
+
+            const rows = await response.json();
+            rows.forEach((atlasRow) => {
+                const serial = String(atlasRow.enderecavel_principal || '').trim().toUpperCase();
+                if (!serial) return;
+                sapMap.set(serial, toDisplayValue(atlasRow.codigo_fornecedor_sap));
+            });
+        }
+
+        return sapMap;
+    }
+
+    async function exportConnectResults() {
+        if (!filteredResults.length) {
+            alert('Não há dados para exportar.');
+            return;
+        }
+
+        try {
+            exportConnectBtn.disabled = true;
+            const serials = filteredResults.map((row) => row.values.serial);
+            const sapMap = await fetchSapMapForSerials(serials);
+            const rowsForExport = filteredResults.map((row) => {
+                const serial = toDisplayValue(row.values.serial);
+                const serialKey = String(serial).trim().toUpperCase();
+                return {
+                    serial,
+                    obs: '',
+                    caixa: toDisplayValue(row.values.cx),
+                    sap: sapMap.get(serialKey) || '',
+                    tecnologia: toDisplayValue(row.values.operacao)
+                };
+            });
+
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(rowsForExport, {
+                header: ['serial', 'obs', 'caixa', 'sap', 'tecnologia']
+            });
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'estoque_net');
+            XLSX.writeFile(workbook, buildExportFileName(filteredResults));
+        } catch (error) {
+            console.error(error);
+            alert('Não foi possível exportar o Connect com o SAP da base_atlas.');
+        } finally {
+            exportConnectBtn.disabled = filteredResults.length === 0;
+        }
+    }
+
+    exportConnectBtn.addEventListener('click', exportConnectResults);
+    exportQualitorBtn.addEventListener('click', exportFilteredResults);
 
     updateFilteredCount(0, 0);
     applyComparisonFilters();
@@ -512,7 +666,6 @@ function initExportacoes() {
                 runBtn.textContent = 'Sincronizar';
                 showLoading(false);
             }, 500);
-            // Event listeners para novos botões de exportação podem ser adicionados aqui quando os padrões forem definidos
         }
     });
 }
