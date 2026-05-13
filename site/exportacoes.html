@@ -58,13 +58,88 @@
 
                 <section class="form-section">
                     <h3 class="section-title">Sincronização via banco de dados</h3>
-                    <p class="section-hint">Regra fixa: a tabela <strong>reversa</strong> será cruzada com a <strong>base_atlas</strong>, comparando o serial da reversa com o campo <strong>enderecavel_principal</strong> do Atlas.</p>
+                    <p class="section-hint">Regra fixa: a tabela <strong>reversa</strong> será cruzada com a
+                        <strong>base_atlas</strong>, comparando o ENDEREÇAVEL PRINCIPAL da reversa com o campo
+                        <strong>enderecavel_principal</strong> do Atlas.</p>
                 </section>
 
                 <section class="form-section">
                     <div class="form-actions export-actions">
-                        <button type="button" class="submit-btn secondary-btn" id="runComparisonBtn">Sincronizar</button>
-                        <button type="button" class="submit-btn" id="downloadExportBtn" disabled>Exportar resultado</button>
+                        <button type="button" class="submit-btn secondary-btn"
+                            id="runComparisonBtn">Sincronizar</button>
+                        <button type="button" class="submit-btn" id="downloadExportBtn" disabled>Exportar
+                            resultado</button>
+                    </div>
+                </section>
+
+                <section class="form-section filter-section">
+                    <div class="section-header-inline">
+                        <h3 class="section-title">Filtros da exportação</h3>
+                        <span class="section-hint" id="filterFeedback">Sincronize para carregar os filtros.</span>
+                    </div>
+                    <div class="grid grid-filters">
+                        <div class="input-group">
+                            <label>Busca na tabela</label>
+                            <input type="text" id="tableSearchFilter"
+                                placeholder="ENDEREÇAVEL PRINCIPAL, origem, modelo...">
+                        </div>
+                        <div class="input-group">
+                            <label>Estado</label>
+                            <div class="select-wrapper">
+                                <select id="estadoFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                                <div class="select-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Local</label>
+                            <div class="select-wrapper">
+                                <select id="localFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                                <div class="select-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Tipo de operação</label>
+                            <div class="select-wrapper">
+                                <select id="operacaoFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                                <div class="select-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Data inicial</label>
+                            <input type="date" id="startDateFilter">
+                        </div>
+                        <div class="input-group">
+                            <label>Data final</label>
+                            <input type="date" id="endDateFilter">
+                        </div>
+                    </div>
+                    <div class="form-actions filter-actions">
+                        <button type="button" class="submit-btn secondary-btn" id="clearFiltersBtn">Limpar
+                            filtros</button>
                     </div>
                 </section>
 
@@ -92,15 +167,19 @@
                         <table class="result-table">
                             <thead>
                                 <tr>
-                                    <th>Chave</th>
-                                    <th>Status</th>
-                                    <th>Origem</th>
+                                    <th>ENDEREÇAVEL PRINCIPAL</th>
+                                    <th>Nome da Origem</th>
                                     <th>Modelo</th>
+                                    <th>Estado</th>
+                                    <th>Local</th>
+                                    <th>Operação</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="comparisonPreviewBody">
                                 <tr>
-                                    <td colspan="4">Sem dados para exibição.</td>
+                                    <td colspan="8">Sem dados para exibição.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -108,17 +187,17 @@
                 </section>
             </section>
 
-                <aside class="portal-aside">
-                    <section class="info-card">
-                        <h3>Fluxo de Exportação</h3>
-                        <ul>
-                            <li>1. Clique em Sincronizar</li>
-                            <li>2. Aguarde o cruzamento no banco</li>
-                            <li>3. Revise o resumo e a prévia</li>
-                            <li>4. Exporte o resultado</li>
-                        </ul>
-                    </section>
-                </aside>
+            <aside class="portal-aside">
+                <section class="info-card">
+                    <h3>Fluxo de Exportação</h3>
+                    <ul>
+                        <li>1. Clique em Sincronizar</li>
+                        <li>2. Aguarde o cruzamento no banco</li>
+                        <li>3. Revise o resumo e a prévia</li>
+                        <li>4. Exporte o resultado</li>
+                    </ul>
+                </section>
+            </aside>
         </section>
         <footer>
             <p>Sistema Interno de Logística Reversa &copy; 2026</p>
