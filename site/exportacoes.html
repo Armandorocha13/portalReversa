@@ -68,6 +68,58 @@
                     </div>
                 </section>
 
+                <section class="form-section filter-section">
+                    <div class="section-header-inline">
+                        <h3 class="section-title">Filtros da exportação</h3>
+                        <span id="filterFeedback" class="section-hint">Mostrando todos os resultados</span>
+                    </div>
+                    <div class="grid grid-filters">
+                        <div class="input-group">
+                            <label for="tableSearchFilter">Busca na tabela</label>
+                            <input type="text" id="tableSearchFilter" placeholder="Buscar por serial, origem ou modelo">
+                        </div>
+                        <div class="input-group">
+                            <label for="estadoFilter">Estado</label>
+                            <div class="select-wrapper">
+                                <select id="estadoFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="localFilter">Local</label>
+                            <div class="select-wrapper">
+                                <select id="localFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="operacaoFilter">Tipo de operação</label>
+                            <div class="select-wrapper">
+                                <select id="operacaoFilter">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="startDateFilter">Data inicial</label>
+                            <div class="date-wrapper">
+                                <input type="date" id="startDateFilter">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="endDateFilter">Data final</label>
+                            <div class="date-wrapper">
+                                <input type="date" id="endDateFilter">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions filter-actions">
+                        <button type="button" class="submit-btn secondary-btn" id="clearFiltersBtn">Limpar filtros</button>
+                    </div>
+                </section>
+
                 <section class="form-section">
                     <h3 class="section-title">Resumo da comparação</h3>
                     <div class="summary-grid">
@@ -92,15 +144,19 @@
                         <table class="result-table">
                             <thead>
                                 <tr>
-                                    <th>Chave</th>
-                                    <th>Status</th>
-                                    <th>Origem</th>
+                                    <th>Serial</th>
+                                    <th>Nome da Origem</th>
                                     <th>Modelo</th>
+                                    <th>Estado</th>
+                                    <th>Local</th>
+                                    <th>Operação</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="comparisonPreviewBody">
                                 <tr>
-                                    <td colspan="4">Sem dados para exibição.</td>
+                                    <td colspan="8">Sem dados para exibição.</td>
                                 </tr>
                             </tbody>
                         </table>

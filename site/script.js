@@ -180,12 +180,85 @@ function initExportacoes() {
     const summaryTotal = document.getElementById('summaryTotal');
     const summaryMatched = document.getElementById('summaryMatched');
     const summaryMissing = document.getElementById('summaryMissing');
+    const tableSearchFilter = document.getElementById('tableSearchFilter');
+    const estadoFilter = document.getElementById('estadoFilter');
+    const localFilter = document.getElementById('localFilter');
+    const operacaoFilter = document.getElementById('operacaoFilter');
+    const startDateFilter = document.getElementById('startDateFilter');
+    const endDateFilter = document.getElementById('endDateFilter');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    const filterFeedback = document.getElementById('filterFeedback');
 
-    if (!runBtn || !downloadBtn || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing) {
+    if (
+        !runBtn || !downloadBtn || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing
+        || !tableSearchFilter || !estadoFilter || !localFilter || !operacaoFilter
+        || !startDateFilter || !endDateFilter || !clearFiltersBtn || !filterFeedback
+    ) {
         return;
     }
 
+    const reversaColumns = [
+        'serial',
+        'nome_origem',
+        'modelo',
+        'estado',
+        'nome_local',
+        'operacao',
+        'data_ultima_alteracao'
+    ];
+
     let comparisonResults = [];
+    let filteredResults = [];
+
+    function collectFilters() {
+        return {
+            search: tableSearchFilter.value.trim().toUpperCase(),
+            estado: estadoFilter.value.trim().toUpperCase(),
+            local: localFilter.value.trim().toUpperCase(),
+            operacao: operacaoFilter.value.trim().toUpperCase(),
+            startDate: startDateFilter.value,
+            endDate: endDateFilter.value
+        };
+    }
+
+    function updateFilterFeedback(total, shown) {
+        filterFeedback.textContent = total === shown
+            ? 'Mostrando todos os resultados'
+            : `Mostrando ${shown} de ${total} resultados`;
+    }
+
+    function applyFiltersAndRender() {
+        filteredResults = filterComparisonResults(comparisonResults, collectFilters());
+        renderComparison(filteredResults, previewBody, summaryTotal, summaryMatched, summaryMissing);
+        downloadBtn.disabled = filteredResults.length === 0;
+        updateFilterFeedback(comparisonResults.length, filteredResults.length);
+    }
+
+    function resetFilters() {
+        tableSearchFilter.value = '';
+        estadoFilter.value = '';
+        localFilter.value = '';
+        operacaoFilter.value = '';
+        startDateFilter.value = '';
+        endDateFilter.value = '';
+        applyFiltersAndRender();
+    }
+
+    function updateFilterOptions(rows) {
+        const setOptions = (select, values) => {
+            select.innerHTML = '<option value="">Todos</option>';
+            values.forEach((value) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+        };
+
+        setOptions(estadoFilter, uniqueValues(rows.map((row) => row.estado)));
+        setOptions(localFilter, uniqueValues(rows.map((row) => row.nome_local)));
+        setOptions(operacaoFilter, uniqueValues(rows.map((row) => row.operacao)));
+    }
 
     runBtn.addEventListener('click', async () => {
         runBtn.disabled = true;
@@ -199,16 +272,16 @@ function initExportacoes() {
             
             // DADOS MOCADOS PARA TESTE
             const reversaRows = [
-                { serial: 'SN001', nome_origem: 'RIO DE JANEIRO', modelo: 'ONT NOKIA' },
-                { serial: 'SN002', nome_origem: 'SÃO PAULO', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN003', nome_origem: 'CURITIBA', modelo: 'ONT NOKIA' },
-                { serial: 'SN004', nome_origem: 'PORTO ALEGRE', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN005', nome_origem: 'BELO HORIZONTE', modelo: 'ONT NOKIA' },
-                { serial: 'SN006', nome_origem: 'RIO DE JANEIRO', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN007', nome_origem: 'MANAUS', modelo: 'ONT NOKIA' },
-                { serial: 'SN008', nome_origem: 'RECIFE', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN009', nome_origem: 'FORTALEZA', modelo: 'ONT NOKIA' },
-                { serial: 'SN010', nome_origem: 'BRASÍLIA', modelo: 'HGW SAGEMCOM' }
+                { serial: 'SN001', nome_origem: 'RIO DE JANEIRO', modelo: 'ONT NOKIA', estado: 'RJ', nome_local: 'RIO 01', operacao: 'TROCA', data_ultima_alteracao: '2026-01-01' },
+                { serial: 'SN002', nome_origem: 'SÃO PAULO', modelo: 'HGW SAGEMCOM', estado: 'SP', nome_local: 'SP 01', operacao: 'RECOLHIMENTO', data_ultima_alteracao: '2026-01-03' },
+                { serial: 'SN003', nome_origem: 'CURITIBA', modelo: 'ONT NOKIA', estado: 'PR', nome_local: 'CURITIBA 01', operacao: 'TROCA', data_ultima_alteracao: '2026-01-08' },
+                { serial: 'SN004', nome_origem: 'PORTO ALEGRE', modelo: 'HGW SAGEMCOM', estado: 'RS', nome_local: 'POA 02', operacao: 'RECOLHIMENTO', data_ultima_alteracao: '2026-02-01' },
+                { serial: 'SN005', nome_origem: 'BELO HORIZONTE', modelo: 'ONT NOKIA', estado: 'MG', nome_local: 'BH 01', operacao: 'TROCA', data_ultima_alteracao: '2026-02-03' },
+                { serial: 'SN006', nome_origem: 'RIO DE JANEIRO', modelo: 'HGW SAGEMCOM', estado: 'RJ', nome_local: 'RIO 02', operacao: 'RECOLHIMENTO', data_ultima_alteracao: '2026-02-10' },
+                { serial: 'SN007', nome_origem: 'MANAUS', modelo: 'ONT NOKIA', estado: 'AM', nome_local: 'MANAUS 01', operacao: 'TROCA', data_ultima_alteracao: '2026-03-02' },
+                { serial: 'SN008', nome_origem: 'RECIFE', modelo: 'HGW SAGEMCOM', estado: 'PE', nome_local: 'RECIFE 01', operacao: 'RECOLHIMENTO', data_ultima_alteracao: '2026-03-07' },
+                { serial: 'SN009', nome_origem: 'FORTALEZA', modelo: 'ONT NOKIA', estado: 'CE', nome_local: 'FORTALEZA 01', operacao: 'TROCA', data_ultima_alteracao: '2026-03-10' },
+                { serial: 'SN010', nome_origem: 'BRASÍLIA', modelo: 'HGW SAGEMCOM', estado: 'DF', nome_local: 'BRASILIA 01', operacao: 'RECOLHIMENTO', data_ultima_alteracao: '2026-03-15' }
             ];
             
             updateLoadingProgress(50);
@@ -230,8 +303,8 @@ function initExportacoes() {
             }
 
             comparisonResults = compareRows(reversaRows, atlasRows, reversaSerialColumn);
-            renderComparison(comparisonResults, previewBody, summaryTotal, summaryMatched, summaryMissing);
-            downloadBtn.disabled = comparisonResults.length === 0;
+            updateFilterOptions(comparisonResults);
+            resetFilters();
         } catch (error) {
             console.error(error);
             alert('Não foi possível comparar no banco. Verifique se as tabelas existem e têm acesso pela API.');
@@ -246,20 +319,29 @@ function initExportacoes() {
     });
 
     downloadBtn.addEventListener('click', () => {
-        if (!comparisonResults.length) return;
+        if (!filteredResults.length) return;
 
-        const exportData = comparisonResults.map((row) => ({
-            chave_comparacao: row.key,
-            status: row.status,
-            nome_origem: row.nomeOrigem,
-            modelo: row.modelo
-        }));
+        const exportData = filteredResults.map((row) => buildReversaExportRow(row, reversaColumns));
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'comparacao');
         XLSX.writeFile(wb, `resultado_comparacao_reversa_${Date.now()}.xlsx`);
     });
+
+    [
+        tableSearchFilter,
+        estadoFilter,
+        localFilter,
+        operacaoFilter,
+        startDateFilter,
+        endDateFilter
+    ].forEach((element) => {
+        element.addEventListener('input', applyFiltersAndRender);
+        element.addEventListener('change', applyFiltersAndRender);
+    });
+
+    clearFiltersBtn.addEventListener('click', resetFilters);
 }
 
 async function fetchAllRows(tableName, columns) {
@@ -360,10 +442,15 @@ function detectSerialColumn(rows) {
 function getFieldValue(row, key) {
     const aliases = {
         numero_serie: ['numero_serie', 'número série', 'número serie', 'numero serie'],
+        serial: ['serial', 'numero_serie', 'número série', 'número serie', 'numero serie'],
         codigo_material_sap: ['codigo_material_sap', 'código material sap', 'codigo material sap'],
         enderecavel_principal: ['enderecavel_principal', 'endereçavel principal', 'enderecavel principal'],
         nome_origem: ['nome_origem', 'nome da origem'],
-        modelo: ['modelo']
+        modelo: ['modelo'],
+        estado: ['estado'],
+        nome_local: ['nome_local', 'nome do local'],
+        operacao: ['operacao', 'operação'],
+        data_ultima_alteracao: ['data_ultima_alteracao', 'data última alteração', 'data ultima alteracao']
     };
 
     const rowMap = {};
@@ -394,10 +481,14 @@ function compareRows(reversaRows, atlasRows, field) {
         const normalizedKey = toComparable(keyValue);
         const found = normalizedKey !== '' && atlasSet.has(normalizedKey);
         return {
-            key: keyValue || '-',
+            serial: keyValue || '-',
             status: found ? 'ENCONTRADO' : 'NAO_ENCONTRADO',
-            nomeOrigem: getFieldValue(row, 'nome_origem') || '-',
-            modelo: getFieldValue(row, 'modelo') || '-'
+            nome_origem: getFieldValue(row, 'nome_origem') || '-',
+            modelo: getFieldValue(row, 'modelo') || '-',
+            estado: getFieldValue(row, 'estado') || '-',
+            nome_local: getFieldValue(row, 'nome_local') || '-',
+            operacao: getFieldValue(row, 'operacao') || '-',
+            data_ultima_alteracao: getFieldValue(row, 'data_ultima_alteracao') || '-'
         };
     });
 }
@@ -412,20 +503,101 @@ function renderComparison(results, previewBody, summaryTotal, summaryMatched, su
 
     const preview = results.slice(0, 20);
     if (!preview.length) {
-        previewBody.innerHTML = '<tr><td colspan="4">Sem dados para exibição.</td></tr>';
+        previewBody.innerHTML = '<tr><td colspan="8">Sem dados para exibição.</td></tr>';
         return;
     }
 
     previewBody.innerHTML = preview
         .map((row) => `
             <tr>
-                <td>${escapeHtml(row.key)}</td>
-                <td><span class="status-pill ${row.status === 'ENCONTRADO' ? 'status-ok' : 'status-missing'}">${row.status}</span></td>
-                <td>${escapeHtml(row.nomeOrigem)}</td>
+                <td>${escapeHtml(row.serial)}</td>
+                <td>${escapeHtml(row.nome_origem)}</td>
                 <td>${escapeHtml(row.modelo)}</td>
+                <td>${escapeHtml(row.estado)}</td>
+                <td>${escapeHtml(row.nome_local)}</td>
+                <td>${escapeHtml(row.operacao)}</td>
+                <td>${escapeHtml(formatDateForDisplay(row.data_ultima_alteracao))}</td>
+                <td><span class="status-pill ${row.status === 'ENCONTRADO' ? 'status-ok' : 'status-missing'}">${row.status}</span></td>
             </tr>
         `)
         .join('');
+}
+
+function uniqueValues(values) {
+    return Array.from(
+        new Set(values.map((value) => String(value || '').trim()).filter((value) => value && value !== '-'))
+    ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+function filterComparisonResults(results, filters) {
+    const startDate = filters.startDate ? parseDateValue(filters.startDate) : null;
+    const endDate = filters.endDate ? parseDateValue(filters.endDate) : null;
+
+    return results.filter((row) => {
+        const serial = String(row.serial || '').toUpperCase();
+        const nomeOrigem = String(row.nome_origem || '').toUpperCase();
+        const modelo = String(row.modelo || '').toUpperCase();
+        const estado = String(row.estado || '').toUpperCase();
+        const local = String(row.nome_local || '').toUpperCase();
+        const operacao = String(row.operacao || '').toUpperCase();
+
+        const matchesSearch = !filters.search
+            || serial.includes(filters.search)
+            || nomeOrigem.includes(filters.search)
+            || modelo.includes(filters.search);
+        const matchesEstado = !filters.estado || estado === filters.estado;
+        const matchesLocal = !filters.local || local === filters.local;
+        const matchesOperacao = !filters.operacao || operacao === filters.operacao;
+
+        const rowDate = parseDateValue(row.data_ultima_alteracao);
+        const matchesStartDate = !startDate || (rowDate && rowDate >= startDate);
+        const matchesEndDate = !endDate || (rowDate && rowDate <= endDate);
+
+        return matchesSearch && matchesEstado && matchesLocal && matchesOperacao && matchesStartDate && matchesEndDate;
+    });
+}
+
+function parseDateValue(value) {
+    if (!value) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        const parsedDate = new Date(`${text}T00:00:00`);
+        return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+    }
+
+    const brMatch = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (brMatch) {
+        const parsedDate = new Date(`${brMatch[3]}-${brMatch[2]}-${brMatch[1]}T00:00:00`);
+        return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+    }
+
+    const parsedDate = new Date(text);
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+function formatDateForDisplay(value) {
+    const parsedDate = parseDateValue(value);
+    if (!parsedDate) return value || '-';
+    const day = String(parsedDate.getDate()).padStart(2, '0');
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+    const year = parsedDate.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function getRowField(row, key) {
+    if (key === 'serial') return row.serial || '-';
+    return row[key] || '-';
+}
+
+function buildReversaExportRow(row, reversaColumns) {
+    const exportRow = {};
+    reversaColumns.forEach((column) => {
+        exportRow[column] = getRowField(row, column);
+    });
+    exportRow.status = row.status || '-';
+    return exportRow;
 }
 
 function escapeHtml(text) {
