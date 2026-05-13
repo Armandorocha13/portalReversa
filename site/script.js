@@ -278,8 +278,8 @@ function initExportacoes() {
     const filteredCountInfo = document.getElementById('filteredCountInfo');
     const exportConnectBtn = document.getElementById('exportConnectBtn');
     const exportQualitorBtn = document.getElementById('exportQualitorBtn');
-
-    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !exportQualitorBtn) {
+    const syncConnectBtn = document.getElementById('syncConnectBtn');
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !exportQualitorBtn || !syncConnectBtn) {
         return;
     }
 
@@ -408,6 +408,7 @@ function initExportacoes() {
         const hasResults = filteredResults.length > 0;
         exportConnectBtn.disabled = !hasResults;
         exportQualitorBtn.disabled = !hasResults;
+        syncConnectBtn.disabled = !hasResults;
         
         const badge = document.getElementById('filteredCountInfo');
         if (badge) {
@@ -580,6 +581,58 @@ function initExportacoes() {
 
     exportConnectBtn.addEventListener('click', exportConnectResults);
     exportQualitorBtn.addEventListener('click', exportFilteredResults);
+
+    syncConnectBtn.addEventListener('click', async () => {
+        if (!filteredResults.length) {
+            alert('Não há dados para sincronizar.');
+            return;
+        }
+
+        // 1. Primeiro exporta o arquivo (o robô precisa do arquivo em disco)
+        const fileName = buildExportFileName(filteredResults);
+        await exportConnectResults(); // Isso gera o arquivo na pasta de downloads ou padrão
+
+        // 2. Tenta chamar o servidor local
+        try {
+            syncConnectBtn.disabled = true;
+            syncConnectBtn.textContent = 'Iniciando Robô...';
+            
+            // Prepara os dados formatados para o Connect
+            const serials = filteredResults.map((row) => row.values.serial);
+            const sapMap = await fetchSapMapForSerials(serials);
+            const formattedData = filteredResults.map((row) => {
+                const serial = toDisplayValue(row.values.serial);
+                const serialKey = String(serial).trim().toUpperCase();
+                return {
+                    serial,
+                    obs: '',
+                    caixa: toDisplayValue(row.values.cx),
+                    sap: sapMap.get(serialKey) || '',
+                    tecnologia: toDisplayValue(row.values.operacao)
+                };
+            });
+
+            const response = await fetch('http://localhost:3001/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    fileName: fileName,
+                    data: formattedData
+                })
+            });
+
+            if (response.ok) {
+                alert('Robô iniciado com sucesso! Acompanhe a janela do navegador que se abriu.');
+            } else {
+                throw new Error();
+            }
+        } catch (error) {
+            alert('Atenção: O servidor de automação não está rodando.\n\nPara sincronizar automaticamente:\n1. Abra o terminal na pasta "automation-node"\n2. Rode o comando: node sync-server.js\n3. Tente clicar no botão novamente.');
+        } finally {
+            syncConnectBtn.disabled = false;
+            syncConnectBtn.textContent = 'Sincronizar Connect';
+        }
+    });
 
     updateFilteredCount(0, 0);
     applyComparisonFilters();
