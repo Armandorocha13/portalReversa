@@ -374,9 +374,59 @@ label {
     grid-template-columns: repeat(3, 1fr);
 }
 
-.grid-metrics,
-.grid-ACESSORIOS {
+.grid-metrics {
     grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-ACESSORIOS {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.mini-upload-container {
+    position: relative;
+    width: 100%;
+}
+
+.mini-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.mini-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px dashed rgba(42, 42, 42, 0.55);
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 46px;
+}
+
+.mini-file-input:not(:disabled):hover + .mini-upload-label {
+    border-color: var(--logo-blue);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--logo-blue);
+}
+
+.mini-file-input:disabled + .mini-upload-label {
+    background: #e1e1e1;
+    border-color: #b8b8b8;
+    color: #7a7a7a;
+    cursor: not-allowed;
+}
+
+.mini-file-input:not(:disabled) + .mini-upload-label {
+    border-style: dashed;
 }
 
 .ACESSORIOS-section {

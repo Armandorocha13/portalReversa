@@ -20,13 +20,25 @@ function initReversaForm() {
     const volumeACESSORIOSInput = document.getElementById('VolumeACESSORIOS');
     const pesoACESSORIOSInput = document.getElementById('pesoACESSORIOS');
 
-    if (!form || !fileInput || !dropArea || !fileInfo || !fileName || !fileSize || !dropContent || !subText || !operacaoSelect || !ACESSORIOSSection || !volumeACESSORIOSInput || !pesoACESSORIOSInput) {
+    const fileACESSORIOSInput = document.getElementById('fileACESSORIOS');
+    const fileACESSORIOSName = document.getElementById('fileACESSORIOSName');
+
+    if (!form || !fileInput || !dropArea || !fileInfo || !fileName || !fileSize || !dropContent || !subText || !operacaoSelect || !ACESSORIOSSection || !volumeACESSORIOSInput || !pesoACESSORIOSInput || !fileACESSORIOSInput || !fileACESSORIOSName) {
         return;
     }
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) handleFile(file);
+    });
+
+    fileACESSORIOSInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileACESSORIOSName.textContent = file.name;
+        } else {
+            fileACESSORIOSName.textContent = 'Anexar Documento';
+        }
     });
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
@@ -84,11 +96,15 @@ function initReversaForm() {
         ACESSORIOSSection.classList.toggle('is-enabled', isAltoGiroACESSORIOS);
         volumeACESSORIOSInput.disabled = !isAltoGiroACESSORIOS;
         pesoACESSORIOSInput.disabled = !isAltoGiroACESSORIOS;
+        fileACESSORIOSInput.disabled = !isAltoGiroACESSORIOS;
         volumeACESSORIOSInput.required = isAltoGiroACESSORIOS;
         pesoACESSORIOSInput.required = isAltoGiroACESSORIOS;
+        fileACESSORIOSInput.required = isAltoGiroACESSORIOS;
         if (!isAltoGiroACESSORIOS) {
             volumeACESSORIOSInput.value = '';
             pesoACESSORIOSInput.value = '';
+            fileACESSORIOSInput.value = '';
+            fileACESSORIOSName.textContent = 'Anexar Documento';
         }
     }
 
