@@ -127,7 +127,7 @@ body::before {
 /* Main Portal */
 .container {
     width: 100%;
-    max-width: 1240px;
+    max-width: 1600px;
     margin: 26px auto;
     padding: 0 28px 32px;
 }
@@ -146,6 +146,11 @@ body::before {
     gap: 18px;
     align-items: start;
     margin-top: 6px;
+}
+
+/* Ajuste para quando não houver aside (como na página de exportação) */
+.portal-layout:not(:has(aside)) {
+    grid-template-columns: 1fr;
 }
 
 .portal-panel {
@@ -370,18 +375,18 @@ label {
 }
 
 .grid-metrics,
-.grid-emis {
+.grid-ACESSORIOS {
     grid-template-columns: repeat(2, 1fr);
 }
 
-.emis-section {
+.ACESSORIOS-section {
     border: 1px solid #dddddd;
     border-radius: 12px;
     padding: 16px;
     background: rgba(255, 255, 255, 0.55);
 }
 
-.emis-section.is-enabled {
+.ACESSORIOS-section.is-enabled {
     border-color: rgba(30, 61, 124, 0.45);
     box-shadow: 0 0 0 3px rgba(30, 61, 124, 0.08);
 }
@@ -393,7 +398,8 @@ label {
 
 select,
 input[type="date"],
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
     width: 100%;
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(42, 42, 42, 0.55);
@@ -409,6 +415,10 @@ input[type="number"] {
 }
 
 input[type="number"] {
+    cursor: text;
+}
+
+input[type="text"] {
     cursor: text;
 }
 
@@ -431,21 +441,34 @@ select {
 
 select:focus,
 input[type="date"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="text"]:focus {
     border-color: rgba(30, 61, 124, 0.8);
     box-shadow: 0 0 0 4px rgba(30, 61, 124, 0.12);
     background: rgba(255, 255, 255, 0.88);
 }
 
 .select-icon,
-.date-icon {
+.date-icon,
+.input-icon {
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-secondary);
     pointer-events: none;
     opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper input {
+    padding-right: 40px;
 }
 
 /* Submit Button */
@@ -566,6 +589,95 @@ input[type="number"]:focus {
     margin-bottom: 2px;
 }
 
+.filters-section {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.filters-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filters-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.filters-grid .input-group {
+    margin-bottom: 0;
+}
+
+.filtered-count-badge {
+    background: rgba(30, 61, 124, 0.1);
+    color: var(--logo-blue);
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid rgba(30, 61, 124, 0.2);
+    display: inline-flex;
+    align-items: center;
+}
+
+.filters-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    padding-top: 16px;
+    gap: 16px;
+}
+
+.export-btn {
+    width: auto;
+    min-width: 240px;
+    margin: 0;
+}
+
+.submit-btn:disabled {
+    background: #e0e0e0;
+    color: #a0a0a0;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    border: 1px solid #d0d0d0;
+}
+
+.clear-filters-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid #d1d1d1;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-filters-btn:hover {
+    background: #fdfdfd;
+    color: var(--logo-red);
+    border-color: var(--logo-red);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(213, 58, 58, 0.1);
+}
+
+.clear-filters-btn svg {
+    opacity: 0.7;
+}
+
+.clear-filters-btn:hover svg {
+    opacity: 1;
+}
+
 .sync-overlay {
     position: fixed;
     inset: 0;
@@ -614,6 +726,7 @@ input[type="number"]:focus {
     0% {
         transform: translateX(-120%);
     }
+
     100% {
         transform: translateX(280%);
     }
@@ -719,7 +832,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     }
 
     .grid-metrics,
-    .grid-emis {
+    .grid-ACESSORIOS {
         grid-template-columns: 1fr 1fr;
     }
 
@@ -730,12 +843,32 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     .summary-grid {
         grid-template-columns: 1fr;
     }
+
+    .filters-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-footer {
+        justify-content: center;
+    }
+    
+    .clear-filters-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 560px) {
+
     .grid-request,
     .grid-metrics,
-    .grid-emis {
+    .grid-ACESSORIOS {
         grid-template-columns: 1fr;
     }
 
@@ -768,11 +901,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         min-width: 0;
     }
 
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-actions {
+        align-items: flex-start;
+    }
+
+    .filter-clear-btn {
+        width: 100%;
+        min-width: 0;
+    }
+
     .section-header-inline {
         flex-direction: column;
         align-items: flex-start;
     }
 }
+
 /* Loading Overlay - Premium Design */
 .loading-overlay {
     position: fixed;
@@ -867,14 +1014,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes pulse-ring {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-    100% { transform: scale(0.8); opacity: 0.5; }
+    0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
 }
 
 @keyframes fade-text {
-    from { opacity: 0.6; }
-    to { opacity: 1; }
+    from {
+        opacity: 0.6;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Utilities */

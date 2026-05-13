@@ -16,11 +16,11 @@ function initReversaForm() {
     const dropContent = document.querySelector('.drop-content p.main-text');
     const subText = document.querySelector('.drop-content p.sub-text');
     const operacaoSelect = document.getElementById('operacao');
-    const emisSection = document.getElementById('emisSection');
-    const volumeEmisInput = document.getElementById('VolumeEmis');
-    const pesoEmisInput = document.getElementById('pesoEmis');
+    const ACESSORIOSSection = document.getElementById('ACESSORIOSSection');
+    const volumeACESSORIOSInput = document.getElementById('VolumeACESSORIOS');
+    const pesoACESSORIOSInput = document.getElementById('pesoACESSORIOS');
 
-    if (!form || !fileInput || !dropArea || !fileInfo || !fileName || !fileSize || !dropContent || !subText || !operacaoSelect || !emisSection || !volumeEmisInput || !pesoEmisInput) {
+    if (!form || !fileInput || !dropArea || !fileInfo || !fileName || !fileSize || !dropContent || !subText || !operacaoSelect || !ACESSORIOSSection || !volumeACESSORIOSInput || !pesoACESSORIOSInput) {
         return;
     }
 
@@ -79,21 +79,21 @@ function initReversaForm() {
         subText.classList.remove('hidden');
     }
 
-    function toggleEmisFields() {
-        const isAltoGiroEmis = operacaoSelect.value === 'ALTO GIRO + EMIS';
-        emisSection.classList.toggle('is-enabled', isAltoGiroEmis);
-        volumeEmisInput.disabled = !isAltoGiroEmis;
-        pesoEmisInput.disabled = !isAltoGiroEmis;
-        volumeEmisInput.required = isAltoGiroEmis;
-        pesoEmisInput.required = isAltoGiroEmis;
-        if (!isAltoGiroEmis) {
-            volumeEmisInput.value = '';
-            pesoEmisInput.value = '';
+    function toggleACESSORIOSFields() {
+        const isAltoGiroACESSORIOS = operacaoSelect.value === 'ALTO GIRO + ACESSORIOS';
+        ACESSORIOSSection.classList.toggle('is-enabled', isAltoGiroACESSORIOS);
+        volumeACESSORIOSInput.disabled = !isAltoGiroACESSORIOS;
+        pesoACESSORIOSInput.disabled = !isAltoGiroACESSORIOS;
+        volumeACESSORIOSInput.required = isAltoGiroACESSORIOS;
+        pesoACESSORIOSInput.required = isAltoGiroACESSORIOS;
+        if (!isAltoGiroACESSORIOS) {
+            volumeACESSORIOSInput.value = '';
+            pesoACESSORIOSInput.value = '';
         }
     }
 
-    operacaoSelect.addEventListener('change', toggleEmisFields);
-    toggleEmisFields();
+    operacaoSelect.addEventListener('change', toggleACESSORIOSFields);
+    toggleACESSORIOSFields();
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -103,8 +103,8 @@ function initReversaForm() {
         const data = document.getElementById('dataSolicitacao').value;
         const volume = document.getElementById('Volume').value;
         const peso = document.getElementById('peso').value;
-        const volumeEmis = volumeEmisInput.value;
-        const pesoEmis = pesoEmisInput.value;
+        const volumeACESSORIOS = volumeACESSORIOSInput.value;
+        const pesoACESSORIOS = pesoACESSORIOSInput.value;
         const file = fileInput.files[0];
 
         if (!file) {
@@ -118,8 +118,8 @@ function initReversaForm() {
         console.log('Data:', data);
         console.log('Volume:', volume);
         console.log('Peso (kg):', peso);
-        console.log('Volume EMIS:', volumeEmis || 'N/A');
-        console.log('Peso EMIS (kg):', pesoEmis || 'N/A');
+        console.log('Volume ACESSORIOS:', volumeACESSORIOS || 'N/A');
+        console.log('Peso ACESSORIOS (kg):', pesoACESSORIOS || 'N/A');
         console.log('Arquivo:', file.name);
 
         handleSubmission();
@@ -138,7 +138,7 @@ function initReversaForm() {
 
         updateLoadingProgress(100);
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         showLoading(false);
         alert('Solicitação processada com sucesso!');
     }
@@ -151,15 +151,15 @@ function showLoading(show) {
         console.error('Elemento #loadingOverlay não encontrado!');
         return;
     }
-    
+
     if (show) {
         overlay.classList.remove('hidden');
         overlay.style.display = 'flex'; // Garantir que apareça
-        document.body.style.overflow = 'hidden'; 
+        document.body.style.overflow = 'hidden';
     } else {
         overlay.classList.add('hidden');
         overlay.style.display = 'none';
-        document.body.style.overflow = ''; 
+        document.body.style.overflow = '';
     }
 }
 
@@ -176,65 +176,233 @@ function updateLoadingProgress(percentage) {
 function initExportacoes() {
     const runBtn = document.getElementById('runComparisonBtn');
     const downloadBtn = document.getElementById('downloadExportBtn');
+    const previewHeadRow = document.getElementById('comparisonPreviewHeadRow');
     const previewBody = document.getElementById('comparisonPreviewBody');
     const summaryTotal = document.getElementById('summaryTotal');
     const summaryMatched = document.getElementById('summaryMatched');
     const summaryMissing = document.getElementById('summaryMissing');
+    const filterStatus = document.getElementById('exportFilterStatus');
+    const filterEstado = document.getElementById('exportFilterEstado');
+    const filterLocal = document.getElementById('exportFilterLocal');
+    const filterEnderecavel = document.getElementById('exportFilterEnderecavel');
+    const filterModelo = document.getElementById('exportFilterModelo');
+    const filterSearch = document.getElementById('exportFilterSearch');
+    const filterDate = document.getElementById('exportFilterDate');
+    const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
+    const filteredCountInfo = document.getElementById('filteredCountInfo');
 
-    if (!runBtn || !downloadBtn || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing) {
+    if (!runBtn || !downloadBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterModelo || !filterSearch || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
         return;
     }
 
     let comparisonResults = [];
+    let filteredResults = [];
+    let reversaColumns = [];
+    let dynamicColumnsMap = {
+        estado: null,
+        local: null,
+        modelo: null,
+        enderecavel: null
+    };
+
+    function resetFilters() {
+        filterStatus.value = '';
+        filterEstado.value = '';
+        filterLocal.value = '';
+        filterEnderecavel.value = '';
+        filterModelo.value = '';
+        filterSearch.value = '';
+        filterDate.value = '';
+    }
+
+    function updateFilteredCount(filteredTotal, fullTotal) {
+        if (fullTotal === 0) {
+            filteredCountInfo.textContent = 'Sem dados sincronizados.';
+            return;
+        }
+        if (filteredTotal === fullTotal) {
+            filteredCountInfo.textContent = `Exibindo ${fullTotal} registros.`;
+            return;
+        }
+        filteredCountInfo.textContent = `Exibindo ${filteredTotal} de ${fullTotal} registros após filtros.`;
+    }
+
+    function setSelectOptions(selectElement, values, defaultText) {
+        const options = [`<option value="">${defaultText}</option>`]
+            .concat(values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+        selectElement.innerHTML = options.join('');
+    }
+
+    function setFilterAvailability(selectElement, enabled, emptyText) {
+        selectElement.disabled = !enabled;
+        if (!enabled) {
+            selectElement.innerHTML = `<option value="">${emptyText}</option>`;
+        }
+    }
+
+    function findColumnByCandidates(columns, candidates) {
+        for (let i = 0; i < candidates.length; i += 1) {
+            const candidate = candidates[i];
+            const found = columns.find((column) => normalizeKey(column) === normalizeKey(candidate));
+            if (found) return found;
+        }
+        return null;
+    }
+
+    function updateDynamicColumnsMap(columns, serialColumn) {
+        dynamicColumnsMap = {
+            estado: findColumnByCandidates(columns, ['estado']),
+            local: findColumnByCandidates(columns, ['nome_local', 'nome_origem', 'local']),
+            modelo: findColumnByCandidates(columns, ['modelo']),
+            enderecavel: findColumnByCandidates(columns, ['enderecavel_principal', 'enderecavel', serialColumn || ''])
+        };
+    }
+
+    function populateFilterOptions(results) {
+        const estadoColumn = dynamicColumnsMap.estado;
+        const localColumn = dynamicColumnsMap.local;
+        const modeloColumn = dynamicColumnsMap.modelo;
+
+        const estadoOptions = estadoColumn
+            ? Array.from(new Set(results
+                .map((row) => row.values[estadoColumn])
+                .filter((value) => value && value !== '-')))
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+            : [];
+
+        const localOptions = Array.from(new Set(results
+            .map((row) => (localColumn ? row.values[localColumn] : ''))
+            .filter((value) => value && value !== '-')))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        const modeloOptions = Array.from(new Set(results
+            .map((row) => (modeloColumn ? row.values[modeloColumn] : ''))
+            .filter((value) => value && value !== '-')))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        setFilterAvailability(filterEstado, Boolean(estadoColumn), 'Sem coluna de estado');
+        setFilterAvailability(filterLocal, Boolean(localColumn), 'Sem coluna de local');
+        setFilterAvailability(filterModelo, Boolean(modeloColumn), 'Sem coluna de modelo');
+
+        if (estadoColumn) {
+            setSelectOptions(filterEstado, estadoOptions, 'Todos os estados');
+        }
+        if (localColumn) {
+            setSelectOptions(filterLocal, localOptions, 'Todos os locais');
+        }
+        if (modeloColumn) {
+            setSelectOptions(filterModelo, modeloOptions, 'Todos os modelos');
+        }
+
+        filterEnderecavel.disabled = !dynamicColumnsMap.enderecavel;
+        if (filterEnderecavel.disabled) {
+            filterEnderecavel.value = '';
+            filterEnderecavel.placeholder = 'Sem coluna de endereçável/serial';
+        } else {
+            filterEnderecavel.placeholder = 'Filtrar por serial/chave';
+        }
+    }
+
+    function applyComparisonFilters() {
+        filteredResults = getFilteredComparisonResults(comparisonResults, {
+            status: filterStatus.value,
+            estado: filterEstado.value,
+            local: filterLocal.value,
+            enderecavel: filterEnderecavel.value,
+            modelo: filterModelo.value,
+            search: filterSearch.value,
+            date: filterDate.value,
+            columnsMap: dynamicColumnsMap
+        }, reversaColumns);
+        renderComparison(filteredResults, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, reversaColumns);
+        updateFilteredCount(filteredResults.length, comparisonResults.length);
+        downloadBtn.disabled = filteredResults.length === 0;
+    }
+
+    [filterStatus, filterEstado, filterLocal, filterModelo].forEach((el) => {
+        el.addEventListener('change', applyComparisonFilters);
+    });
+    [filterEnderecavel, filterSearch].forEach((el) => {
+        el.addEventListener('input', applyComparisonFilters);
+    });
+    filterDate.addEventListener('change', applyComparisonFilters);
+
+    clearFiltersBtn.addEventListener('click', () => {
+        resetFilters();
+        applyComparisonFilters();
+    });
+
+    updateFilteredCount(0, 0);
+    applyComparisonFilters();
 
     runBtn.addEventListener('click', async () => {
         runBtn.disabled = true;
         runBtn.textContent = 'Sincronizando...';
-        
+
         showLoading(true);
         updateLoadingProgress(0);
 
         try {
             updateLoadingProgress(20);
+
+            // BUSCA DADOS DA VIEW (JÁ CRUZADOS NO BANCO)
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/vw_reversa_comparacao?select=*`, {
+                headers: { 
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
             
-            // DADOS MOCADOS PARA TESTE
-            const reversaRows = [
-                { serial: 'SN001', nome_origem: 'RIO DE JANEIRO', modelo: 'ONT NOKIA' },
-                { serial: 'SN002', nome_origem: 'SÃO PAULO', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN003', nome_origem: 'CURITIBA', modelo: 'ONT NOKIA' },
-                { serial: 'SN004', nome_origem: 'PORTO ALEGRE', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN005', nome_origem: 'BELO HORIZONTE', modelo: 'ONT NOKIA' },
-                { serial: 'SN006', nome_origem: 'RIO DE JANEIRO', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN007', nome_origem: 'MANAUS', modelo: 'ONT NOKIA' },
-                { serial: 'SN008', nome_origem: 'RECIFE', modelo: 'HGW SAGEMCOM' },
-                { serial: 'SN009', nome_origem: 'FORTALEZA', modelo: 'ONT NOKIA' },
-                { serial: 'SN010', nome_origem: 'BRASÍLIA', modelo: 'HGW SAGEMCOM' }
-            ];
-            
-            updateLoadingProgress(50);
+            if (!res.ok) throw new Error('Falha ao buscar dados da view');
+            const rows = await res.json();
 
-            const atlasRows = [
-                { enderecavel_principal: 'SN001' },
-                { enderecavel_principal: 'SN003' },
-                { enderecavel_principal: 'SN005' },
-                { enderecavel_principal: 'SN007' },
-                { enderecavel_principal: 'SN009' }
-            ];
-
-            updateLoadingProgress(80);
-
-            const reversaSerialColumn = detectSerialColumn(reversaRows);
-            if (!reversaSerialColumn) {
-                alert('Não foi possível identificar automaticamente a coluna de serial na tabela reversa.');
+            if (rows.length === 0) {
+                alert('A tabela reversa está vazia. Importe dados antes de sincronizar.');
+                showLoading(false);
+                runBtn.disabled = false;
+                runBtn.textContent = 'Sincronizar';
                 return;
             }
 
-            comparisonResults = compareRows(reversaRows, atlasRows, reversaSerialColumn);
-            renderComparison(comparisonResults, previewBody, summaryTotal, summaryMatched, summaryMissing);
-            downloadBtn.disabled = comparisonResults.length === 0;
+            updateLoadingProgress(70);
+
+            // MAPEIA OS DADOS DA VIEW PARA O FORMATO DA INTERFACE
+            // Colunas da reversa (originais)
+            reversaColumns = ['operacao', 'data_solicitacao', 'serial', 'cx', 'quantidade', 'peso', 'created_at'];
+            const reversaSerialColumn = 'serial';
+            
+            updateDynamicColumnsMap(reversaColumns, reversaSerialColumn);
+            
+            comparisonResults = rows.map(row => ({
+                status: row.encontrado,
+                values: {
+                    operacao: row.operacao,
+                    data_solicitacao: row.data_solicitacao,
+                    serial: row.serial,
+                    cx: row.cx,
+                    quantidade: row.quantidade,
+                    peso: row.peso,
+                    created_at: row.created_at
+                },
+                atlasData: {
+                    estado: row.situacao_atlas || '-',
+                    nome_local: row.local_atlas || '-'
+                }
+            }));
+
+            populateFilterOptions(comparisonResults);
+            resetFilters();
+            applyComparisonFilters();
         } catch (error) {
+            comparisonResults = [];
+            filteredResults = [];
+            reversaColumns = [];
+            updateDynamicColumnsMap(reversaColumns, null);
+            populateFilterOptions(comparisonResults);
+            resetFilters();
+            applyComparisonFilters();
             console.error(error);
-            alert('Não foi possível comparar no banco. Verifique se as tabelas existem e têm acesso pela API.');
+            alert('Não foi possível sincronizar os dados. Verifique a conexão com o banco.');
         } finally {
             updateLoadingProgress(100);
             setTimeout(() => {
@@ -246,14 +414,18 @@ function initExportacoes() {
     });
 
     downloadBtn.addEventListener('click', () => {
-        if (!comparisonResults.length) return;
+        if (!filteredResults.length) return;
 
-        const exportData = comparisonResults.map((row) => ({
-            chave_comparacao: row.key,
-            status: row.status,
-            nome_origem: row.nomeOrigem,
-            modelo: row.modelo
-        }));
+        const exportData = filteredResults.map((row) => {
+            const data = {};
+            reversaColumns.forEach((column) => {
+                data[column] = row.values[column];
+            });
+            data['SITUAÇÃO ATLAS'] = row.atlasData.estado;
+            data['LOCAL ATLAS'] = row.atlasData.nome_local;
+            data['ENCONTRADO'] = row.status;
+            return data;
+        });
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
@@ -300,6 +472,14 @@ async function fetchAllRows(tableName, columns) {
 function toComparable(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().toUpperCase();
+}
+
+function normalizeText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toUpperCase();
 }
 
 function normalizeKey(value) {
@@ -382,47 +562,131 @@ function getFieldValue(row, key) {
     return '';
 }
 
-function compareRows(reversaRows, atlasRows, field) {
-    const atlasSet = new Set(
-        atlasRows
-            .map((row) => toComparable(getFieldValue(row, 'enderecavel_principal')))
-            .filter((value) => value !== '')
-    );
+function getOrderedColumns(rows) {
+    if (!rows.length) return [];
+    const orderedColumns = Object.keys(rows[0] || {});
+    rows.forEach((row) => {
+        Object.keys(row || {}).forEach((key) => {
+            if (!orderedColumns.includes(key)) {
+                orderedColumns.push(key);
+            }
+        });
+    });
+    return orderedColumns;
+}
+
+function toDisplayValue(value) {
+    if (value === undefined || value === null) return '-';
+    const text = String(value).trim();
+    return text === '' ? '-' : text;
+}
+
+function compareRows(reversaRows, atlasRows, field, columns) {
+    const atlasMap = new Map();
+    atlasRows.forEach((row) => {
+        const serial = toComparable(getFieldValue(row, 'enderecavel_principal'));
+        if (serial) {
+            atlasMap.set(serial, {
+                estado: row.estado || '-',
+                nome_local: row.nome_local || '-'
+            });
+        }
+    });
 
     return reversaRows.map((row) => {
         const keyValue = row[field] === undefined || row[field] === null ? '' : String(row[field]).trim();
         const normalizedKey = toComparable(keyValue);
-        const found = normalizedKey !== '' && atlasSet.has(normalizedKey);
+        const atlasData = atlasMap.get(normalizedKey);
+        const found = !!atlasData;
+        const values = columns.reduce((acc, column) => {
+            acc[column] = toDisplayValue(row[column]);
+            return acc;
+        }, {});
         return {
-            key: keyValue || '-',
-            status: found ? 'ENCONTRADO' : 'NAO_ENCONTRADO',
-            nomeOrigem: getFieldValue(row, 'nome_origem') || '-',
-            modelo: getFieldValue(row, 'modelo') || '-'
+            status: found ? 'Sim' : 'Não',
+            values,
+            atlasData: atlasData || { estado: '-', nome_local: '-' }
         };
     });
 }
 
-function renderComparison(results, previewBody, summaryTotal, summaryMatched, summaryMissing) {
-    const matchedCount = results.filter((row) => row.status === 'ENCONTRADO').length;
+function getFilteredComparisonResults(results, filters, columns) {
+    const estadoColumn = filters.columnsMap.estado;
+    const localColumn = filters.columnsMap.local;
+    const modeloColumn = filters.columnsMap.modelo;
+    const enderecavelColumn = filters.columnsMap.enderecavel;
+    const enderecavelNeedle = normalizeText(filters.enderecavel);
+    const searchNeedle = normalizeText(filters.search);
+    const filterDateValue = filters.date;
+
+    return results.filter((row) => {
+        if (filters.status && row.status !== filters.status) return false;
+        if (filters.estado && estadoColumn && row.values[estadoColumn] !== filters.estado) return false;
+        if (filters.local && localColumn && row.values[localColumn] !== filters.local) return false;
+        if (filters.modelo && modeloColumn && row.values[modeloColumn] !== filters.modelo) return false;
+
+        if (enderecavelNeedle && enderecavelColumn && !normalizeText(row.values[enderecavelColumn]).includes(enderecavelNeedle)) {
+            return false;
+        }
+
+        if (filterDateValue) {
+            // Tenta encontrar uma coluna de data
+            const dateColumn = columns.find(c => normalizeKey(c).includes('data'));
+            if (dateColumn && row.values[dateColumn] !== filterDateValue) {
+                return false;
+            }
+        }
+
+        if (searchNeedle) {
+            const rowValues = columns.map((column) => row.values[column]).join(' ');
+            const atlasValues = [row.atlasData.estado, row.atlasData.nome_local].join(' ');
+            const haystack = normalizeText([row.status, rowValues, atlasValues].join(' '));
+            if (!haystack.includes(searchNeedle)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+}
+
+function formatColumnLabel(columnName) {
+    return String(columnName || '')
+        .replace(/_/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function renderComparison(results, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, columns) {
+    const matchedCount = results.filter((row) => row.status === 'Sim').length;
     const missingCount = results.length - matchedCount;
 
     summaryTotal.textContent = String(results.length);
     summaryMatched.textContent = String(matchedCount);
     summaryMissing.textContent = String(missingCount);
 
+    const headers = columns.concat(['estado_atlas', 'local_atlas', 'status']);
+    previewHeadRow.innerHTML = headers.map((header) => {
+        if (header === 'status') return '<th>ENCONTRADO</th>';
+        if (header === 'estado_atlas') return '<th>SITUAÇÃO ATLAS</th>';
+        if (header === 'local_atlas') return '<th>LOCAL ATLAS</th>';
+        return `<th>${escapeHtml(formatColumnLabel(header))}</th>`;
+    }).join('');
+
     const preview = results.slice(0, 20);
     if (!preview.length) {
-        previewBody.innerHTML = '<tr><td colspan="4">Sem dados para exibição.</td></tr>';
+        previewBody.innerHTML = `<tr><td colspan="${headers.length}">Sem dados para exibição.</td></tr>`;
         return;
     }
 
     previewBody.innerHTML = preview
         .map((row) => `
             <tr>
-                <td>${escapeHtml(row.key)}</td>
-                <td><span class="status-pill ${row.status === 'ENCONTRADO' ? 'status-ok' : 'status-missing'}">${row.status}</span></td>
-                <td>${escapeHtml(row.nomeOrigem)}</td>
-                <td>${escapeHtml(row.modelo)}</td>
+                ${columns.map((column) => `<td>${escapeHtml(row.values[column])}</td>`).join('')}
+                <td>${escapeHtml(row.atlasData.estado)}</td>
+                <td>${escapeHtml(row.atlasData.nome_local)}</td>
+                <td><span class="status-pill ${row.status === 'Sim' ? 'status-ok' : 'status-missing'}">${row.status}</span></td>
             </tr>
         `)
         .join('');
