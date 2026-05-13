@@ -320,7 +320,7 @@ function initExportacoes() {
     }
 
     function applyComparisonFilters() {
-        filteredResults = getFilteredComparisonResults(comparisonResults, {
+        const filters = {
             status: filterStatus.value,
             estado: filterEstado.value,
             local: filterLocal.value,
@@ -329,10 +329,23 @@ function initExportacoes() {
             search: filterSearch.value,
             date: filterDate.value,
             columnsMap: dynamicColumnsMap
-        }, reversaColumns);
+        };
+
+        filteredResults = getFilteredComparisonResults(comparisonResults, filters, reversaColumns);
         renderComparison(filteredResults, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, reversaColumns);
-        updateFilteredCount(filteredResults.length, comparisonResults.length);
-        downloadBtn.disabled = filteredResults.length === 0;
+        
+        const hasResults = filteredResults.length > 0;
+        downloadBtn.disabled = !hasResults;
+        const connectBtn = document.getElementById('exportConnectBtn');
+        const qualitorBtn = document.getElementById('exportQualitorBtn');
+        if (connectBtn) connectBtn.disabled = !hasResults;
+        if (qualitorBtn) qualitorBtn.disabled = !hasResults;
+        
+        const badge = document.getElementById('filteredCountInfo');
+        if (badge) {
+            badge.textContent = hasResults ? `${filteredResults.length} registros encontrados` : 'Nenhum registro encontrado';
+            badge.className = `filtered-count-badge ${hasResults ? 'has-results' : 'no-results'}`;
+        }
     }
 
     [filterStatus, filterEstado, filterLocal, filterModelo].forEach((el) => {
