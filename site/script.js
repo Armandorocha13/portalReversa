@@ -142,21 +142,93 @@ function initReversaForm() {
     });
 
     async function handleSubmission() {
-        showLoading(true);
-        updateLoadingProgress(0);
-
-        // Simulação de progresso premium
-        for (let i = 0; i <= 100; i += Math.random() * 15) {
-            const progress = Math.min(i, 100);
-            updateLoadingProgress(progress);
-            await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Por favor, selecione um arquivo.');
+            return;
         }
 
-        updateLoadingProgress(100);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const operacao = operacaoSelect.value;
+        const dataSolicitacao = document.getElementById('dataSolicitacao').value;
 
-        showLoading(false);
-        alert('Solicitação processada com sucesso!');
+        showLoading(true);
+        updateLoadingProgress(10);
+
+        const pesoGeral = parseFloat(document.getElementById('peso').value) || 0;
+        // O campo 'Volume' na tela refere-se à quantidade de caixas, 
+        // enquanto a quantidade de equipamentos vem do arquivo.
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length === 0) {
+                throw new Error('O arquivo selecionado está vazio.');
+            }
+
+            updateLoadingProgress(40);
+
+            // Identificar coluna de serial dinamicamente
+            const sampleRow = jsonData[0];
+            const serialCol = detectSerialColumn([sampleRow]) || 'serial';
+
+            const payload = jsonData.map(row => {
+                const serialValue = String(row[serialCol] || '').trim();
+                const cxValue = String(row['cx'] || row['CX'] || row['Caixa'] || row['caixa'] || '').trim();
+                
+                const qtdEquipamento = parseFloat(row['quantidade'] || row['qtd'] || row['Qtd'] || row['Quant'] || row['QTDE'] || row['qtde'] || 1);
+
+                return {
+                    operacao: operacao,
+                    data_solicitacao: dataSolicitacao,
+                    serial: serialValue,
+                    cx: cxValue,
+                    quantidade: isNaN(qtdEquipamento) ? 1 : qtdEquipamento, 
+                    peso: pesoGeral,
+                    volume_caixa: 1 // Sempre 1 em todas as linhas, conforme solicitado
+                };
+            }).filter(item => item.serial && item.serial !== '-');
+
+            if (payload.length === 0) {
+                throw new Error('Nenhum registro válido (com serial) encontrado no arquivo.');
+            }
+
+            updateLoadingProgress(70);
+
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/reversa`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Erro ao salvar no banco de dados.');
+            }
+
+            updateLoadingProgress(100);
+            await new Promise(resolve => setTimeout(resolve, 600));
+            showLoading(false);
+            
+            alert(`Sucesso! ${payload.length} registros foram importados para a operação ${operacao}.`);
+            
+            // Limpar formulário
+            form.reset();
+            resetDropArea();
+            toggleACESSORIOSFields(); // Resetar campos condicionais
+
+        } catch (error) {
+            console.error('Erro no processamento:', error);
+            showLoading(false);
+            alert(`Erro: ${error.message}`);
+        }
     }
 }
 
@@ -531,7 +603,11 @@ function detectSerialColumn(rows) {
         'sn',
         'serial_number',
         'num_serie',
-        'numeroserie'
+        'numeroserie',
+        'codigo',
+        'cod',
+        'sap',
+        'sap_code'
     ];
 
     for (let i = 0; i < rankedCandidates.length; i += 1) {
@@ -702,6 +778,7 @@ function renderComparison(results, previewHeadRow, previewBody, summaryTotal, su
         if (header === 'status') return '<th>ENCONTRADO</th>';
         if (header === 'estado_atlas') return '<th>SITUAÇÃO ATLAS</th>';
         if (header === 'local_atlas') return '<th>LOCAL ATLAS</th>';
+        if (header === 'created_at') return '<th>DATA</th>';
         return `<th>${escapeHtml(formatColumnLabel(header))}</th>`;
     }).join('');
 
