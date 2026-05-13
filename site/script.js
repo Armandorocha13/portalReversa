@@ -191,7 +191,6 @@ function updateLoadingProgress(percentage) {
 
 function initExportacoes() {
     const runBtn = document.getElementById('runComparisonBtn');
-    const downloadBtn = document.getElementById('downloadExportBtn');
     const previewHeadRow = document.getElementById('comparisonPreviewHeadRow');
     const previewBody = document.getElementById('comparisonPreviewBody');
     const summaryTotal = document.getElementById('summaryTotal');
@@ -207,7 +206,7 @@ function initExportacoes() {
     const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
     const filteredCountInfo = document.getElementById('filteredCountInfo');
 
-    if (!runBtn || !downloadBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterModelo || !filterSearch || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterModelo || !filterSearch || !filterDate || !clearFiltersBtn || !filteredCountInfo) {
         return;
     }
 
@@ -335,7 +334,6 @@ function initExportacoes() {
         renderComparison(filteredResults, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, reversaColumns);
         
         const hasResults = filteredResults.length > 0;
-        downloadBtn.disabled = !hasResults;
         const connectBtn = document.getElementById('exportConnectBtn');
         const qualitorBtn = document.getElementById('exportQualitorBtn');
         if (connectBtn) connectBtn.disabled = !hasResults;
@@ -406,12 +404,12 @@ function initExportacoes() {
                 status: row.encontrado,
                 values: {
                     operacao: row.operacao,
-                    data_solicitacao: row.data_solicitacao,
+                    data_solicitacao: formatDate(row.data_solicitacao),
                     serial: row.serial,
                     cx: row.cx,
                     quantidade: row.quantidade,
                     peso: row.peso,
-                    created_at: row.created_at
+                    created_at: formatDate(row.created_at)
                 },
                 atlasData: {
                     estado: row.situacao_atlas || '-',
@@ -439,27 +437,8 @@ function initExportacoes() {
                 runBtn.textContent = 'Sincronizar';
                 showLoading(false);
             }, 500);
+            // Event listeners para novos botões de exportação podem ser adicionados aqui quando os padrões forem definidos
         }
-    });
-
-    downloadBtn.addEventListener('click', () => {
-        if (!filteredResults.length) return;
-
-        const exportData = filteredResults.map((row) => {
-            const data = {};
-            reversaColumns.forEach((column) => {
-                data[column] = row.values[column];
-            });
-            data['SITUAÇÃO ATLAS'] = row.atlasData.estado;
-            data['LOCAL ATLAS'] = row.atlasData.nome_local;
-            data['ENCONTRADO'] = row.status;
-            return data;
-        });
-
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'comparacao');
-        XLSX.writeFile(wb, `resultado_comparacao_reversa_${Date.now()}.xlsx`);
     });
 }
 
@@ -608,6 +587,29 @@ function toDisplayValue(value) {
     if (value === undefined || value === null) return '-';
     const text = String(value).trim();
     return text === '' ? '-' : text;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr || dateStr === '-') return '-';
+    try {
+        // Trata strings ISO e formatos comuns
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        
+        // Ajuste de fuso horário para evitar problemas com datas "puras" (AAAA-MM-DD)
+        // que o JS interpreta como UTC e pode mudar o dia
+        if (typeof dateStr === 'string' && dateStr.length === 10 && dateStr.includes('-')) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+        }
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return dateStr;
+    }
 }
 
 function compareRows(reversaRows, atlasRows, field, columns) {
