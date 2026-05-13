@@ -516,7 +516,7 @@ function initExportacoes() {
         for (let i = 0; i < validSerials.length; i += chunkSize) {
             const chunk = validSerials.slice(i, i + chunkSize);
             const encodedValues = chunk.map((serial) => `"${String(serial).replace(/"/g, '""')}"`).join(',');
-            const query = `${SUPABASE_URL}/rest/v1/base_atlas?select=enderecavel_principal,codigo_fornecedor_sap&enderecavel_principal=in.(${encodeURIComponent(encodedValues)})`;
+            const query = `${SUPABASE_URL}/rest/v1/base_atlas?select=enderecavel_principal,codigo_material_sap&enderecavel_principal=in.(${encodeURIComponent(encodedValues)})`;
 
             const response = await fetch(query, {
                 method: 'GET',
@@ -535,7 +535,7 @@ function initExportacoes() {
             rows.forEach((atlasRow) => {
                 const serial = String(atlasRow.enderecavel_principal || '').trim().toUpperCase();
                 if (!serial) return;
-                sapMap.set(serial, toDisplayValue(atlasRow.codigo_fornecedor_sap));
+                sapMap.set(serial, toDisplayValue(atlasRow.codigo_material_sap));
             });
         }
 
