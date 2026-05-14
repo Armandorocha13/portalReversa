@@ -156,7 +156,6 @@ function initReversaForm() {
 
         const pesoGeral = parseFloat(document.getElementById('peso').value) || 0;
         // O campo 'Volume' na tela refere-se à quantidade de caixas, 
-        // enquanto a quantidade de equipamentos vem do arquivo.
 
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -164,32 +163,55 @@ function initReversaForm() {
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+            // --- VALIDAÇÃO RIGOROSA ---
             if (jsonData.length === 0) {
                 throw new Error('O arquivo selecionado está vazio.');
             }
 
+            const sampleRow = jsonData[0];
+            const allKeys = Object.keys(sampleRow).map(k => k.toLowerCase());
+            
+            // 1. Verificar se as colunas obrigatórias existem
+            const hasSerialCol = allKeys.some(k => ['serial', 'enderecavel'].includes(k));
+            const hasCxCol = allKeys.some(k => ['cx', 'caixa'].includes(k));
+
+            if (!hasSerialCol || !hasCxCol) {
+                throw new Error('O arquivo deve conter as colunas "serial" e "caixa" (ou "cx").');
+            }
+
+            // Detectar os nomes exatos das colunas para ler os dados
+            const serialKey = Object.keys(sampleRow).find(k => ['serial', 'enderecavel'].includes(k.toLowerCase()));
+            const cxKey = Object.keys(sampleRow).find(k => ['cx', 'caixa'].includes(k.toLowerCase()));
+
             updateLoadingProgress(40);
 
-            // Identificar coluna de serial dinamicamente
-            const sampleRow = jsonData[0];
-            const serialCol = detectSerialColumn([sampleRow]) || 'serial';
+            const payload = [];
+            for (let i = 0; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                const rowNum = i + 2; // +1 pelo header, +1 pelo index 0
 
-            const payload = jsonData.map(row => {
-                const serialValue = String(row[serialCol] || '').trim();
-                const cxValue = String(row['cx'] || row['CX'] || row['Caixa'] || row['caixa'] || '').trim();
+                const serialValue = String(row[serialKey] || '').trim();
+                const cxValue = String(row[cxKey] || '').trim();
+                const qtdEquipamento = parseFloat(row['quantidade'] || row['qtd'] || row['Qtd'] || 1);
 
-                const qtdEquipamento = parseFloat(row['quantidade'] || row['qtd'] || row['Qtd'] || row['Quant'] || row['QTDE'] || row['qtde'] || 1);
+                // 2. Verificar se há campos em branco
+                if (!serialValue || serialValue === '-') {
+                    throw new Error(`Erro na linha ${rowNum}: O campo "serial" está em branco.`);
+                }
+                if (!cxValue) {
+                    throw new Error(`Erro na linha ${rowNum}: O campo "caixa" está em branco.`);
+                }
 
-                return {
+                payload.push({
                     operacao: operacao,
                     data_solicitacao: dataSolicitacao,
                     serial: serialValue,
                     cx: cxValue,
                     quantidade: isNaN(qtdEquipamento) ? 1 : qtdEquipamento,
                     peso: pesoGeral,
-                    volume_caixa: 1 // Sempre 1 em todas as linhas, conforme solicitado
-                };
-            }).filter(item => item.serial && item.serial !== '-');
+                    volume_caixa: 1
+                });
+            }
 
             if (payload.length === 0) {
                 throw new Error('Nenhum registro válido (com serial) encontrado no arquivo.');
