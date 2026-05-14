@@ -732,6 +732,12 @@ input[type="text"]:focus {
     opacity: 1;
 }
 
+.success-btn {
+    background: #1fa84f !important;
+    border-color: #1fa84f !important;
+    color: white !important;
+}
+
 .sync-overlay {
     position: fixed;
     inset: 0;

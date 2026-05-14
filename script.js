@@ -277,8 +277,8 @@ function initExportacoes() {
     const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
     const filteredCountInfo = document.getElementById('filteredCountInfo');
     const exportConnectBtn = document.getElementById('exportConnectBtn');
-    const exportQualitorBtn = document.getElementById('exportQualitorBtn');
-    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !exportQualitorBtn) {
+    const copyQualitorBtn = document.getElementById('copyQualitorBtn');
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !copyQualitorBtn) {
         return;
     }
 
@@ -406,7 +406,7 @@ function initExportacoes() {
         
         const hasResults = filteredResults.length > 0;
         exportConnectBtn.disabled = !hasResults;
-        exportQualitorBtn.disabled = !hasResults;
+        copyQualitorBtn.disabled = !hasResults;
         
         const badge = document.getElementById('filteredCountInfo');
         if (badge) {
@@ -488,17 +488,45 @@ function initExportacoes() {
         });
     }
 
-    function exportFilteredResults() {
+    async function handleCopyQualitorSerials() {
         if (!filteredResults.length) {
-            alert('Não há dados para exportar.');
+            alert('Não há dados para copiar.');
             return;
         }
 
-        const workbook = XLSX.utils.book_new();
-        const rowsForExport = buildExportRows(filteredResults, reversaColumns);
-        const worksheet = XLSX.utils.json_to_sheet(rowsForExport);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Exportacao');
-        XLSX.writeFile(workbook, buildExportFileName(filteredResults));
+        try {
+            // Extrai apenas os seriais dos resultados filtrados
+            const serials = filteredResults
+                .map(row => row.values.serial)
+                .filter(s => s && s !== '-')
+                .join('\n');
+
+            if (!serials) {
+                alert('Nenhum serial válido encontrado para copiar.');
+                return;
+            }
+
+            await navigator.clipboard.writeText(serials);
+            
+            // Feedback visual no botão
+            const originalText = copyQualitorBtn.innerHTML;
+            copyQualitorBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Copiado!
+            `;
+            copyQualitorBtn.classList.add('success-btn');
+
+            setTimeout(() => {
+                copyQualitorBtn.innerHTML = originalText;
+                copyQualitorBtn.classList.remove('success-btn');
+            }, 2000);
+
+        } catch (err) {
+            console.error('Erro ao copiar:', err);
+            alert('Falha ao copiar para a área de transferência.');
+        }
     }
 
     async function fetchSapMapForSerials(serials) {
@@ -578,7 +606,7 @@ function initExportacoes() {
     }
 
     exportConnectBtn.addEventListener('click', exportConnectResults);
-    exportQualitorBtn.addEventListener('click', exportFilteredResults);
+    copyQualitorBtn.addEventListener('click', handleCopyQualitorSerials);
 
     updateFilteredCount(0, 0);
     applyComparisonFilters();
