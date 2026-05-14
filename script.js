@@ -299,8 +299,8 @@ function initExportacoes() {
     const clearFiltersBtn = document.getElementById('clearExportFiltersBtn');
     const filteredCountInfo = document.getElementById('filteredCountInfo');
     const exportConnectBtn = document.getElementById('exportConnectBtn');
-    const copyQualitorBtn = document.getElementById('copyQualitorBtn');
-    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !copyQualitorBtn) {
+    const exportQualitorBtn = document.getElementById('exportQualitorBtn');
+    if (!runBtn || !previewHeadRow || !previewBody || !summaryTotal || !summaryMatched || !summaryMissing || !filterStatus || !filterEstado || !filterLocal || !filterEnderecavel || !filterOperacao || !filterDate || !clearFiltersBtn || !filteredCountInfo || !exportConnectBtn || !exportQualitorBtn) {
         return;
     }
 
@@ -428,7 +428,7 @@ function initExportacoes() {
 
         const hasResults = filteredResults.length > 0;
         exportConnectBtn.disabled = !hasResults;
-        copyQualitorBtn.disabled = !hasResults;
+        exportQualitorBtn.disabled = !hasResults;
 
         const badge = document.getElementById('filteredCountInfo');
         if (badge) {
@@ -510,45 +510,26 @@ function initExportacoes() {
         });
     }
 
-    async function handleCopyQualitorSerials() {
+    function handleExportQualitor() {
         if (!filteredResults.length) {
-            alert('Não há dados para copiar.');
+            alert('Não há dados para exportar.');
             return;
         }
 
-        try {
-            // Extrai apenas os seriais dos resultados filtrados
-            const serials = filteredResults
-                .map(row => row.values.serial)
-                .filter(s => s && s !== '-')
-                .join('\n');
+        const rowsForExport = filteredResults.map((row) => ({
+            'Tipo de solicitação': toDisplayValue(row.values.operacao),
+            'endereçável principal': toDisplayValue(row.values.serial)
+        }));
 
-            if (!serials) {
-                alert('Nenhum serial válido encontrado para copiar.');
-                return;
-            }
-
-            await navigator.clipboard.writeText(serials);
-
-            // Feedback visual no botão
-            const originalText = copyQualitorBtn.innerHTML;
-            copyQualitorBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Copiado!
-            `;
-            copyQualitorBtn.classList.add('success-btn');
-
-            setTimeout(() => {
-                copyQualitorBtn.innerHTML = originalText;
-                copyQualitorBtn.classList.remove('success-btn');
-            }, 2000);
-
-        } catch (err) {
-            console.error('Erro ao copiar:', err);
-            alert('Falha ao copiar para a área de transferência.');
-        }
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(rowsForExport);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Qualitor');
+        
+        const { week, month } = getPreviousWeekInfo(new Date());
+        const baseName = resolveExportBaseName(filteredResults, filterLocal.value);
+        const fileName = `QUALITOR_S${week}M${month}_${baseName}.xlsx`;
+        
+        XLSX.writeFile(workbook, fileName);
     }
 
     async function fetchSapMapForSerials(serials) {
@@ -633,7 +614,7 @@ function initExportacoes() {
     }
 
     exportConnectBtn.addEventListener('click', exportConnectResults);
-    copyQualitorBtn.addEventListener('click', handleCopyQualitorSerials);
+    exportQualitorBtn.addEventListener('click', handleExportQualitor);
 
     updateFilteredCount(0, 0);
     applyComparisonFilters();
@@ -961,6 +942,11 @@ function getFilteredComparisonResults(results, filters, columns) {
 }
 
 function formatColumnLabel(columnName) {
+    const name = String(columnName || '').toLowerCase().trim();
+    if (name === 'operacao') return 'TIPO DE SOLICITAÇÃO';
+    if (name === 'serial') return 'ENDEREÇÁVEL PRINCIPAL';
+    if (name === 'cx') return 'CAIXA';
+    
     return String(columnName || '')
         .replace(/_/g, ' ')
         .trim()
