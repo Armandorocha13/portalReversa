@@ -177,7 +177,7 @@ function initReversaForm() {
             const payload = jsonData.map(row => {
                 const serialValue = String(row[serialCol] || '').trim();
                 const cxValue = String(row['cx'] || row['CX'] || row['Caixa'] || row['caixa'] || '').trim();
-                
+
                 const qtdEquipamento = parseFloat(row['quantidade'] || row['qtd'] || row['Qtd'] || row['Quant'] || row['QTDE'] || row['qtde'] || 1);
 
                 return {
@@ -185,7 +185,7 @@ function initReversaForm() {
                     data_solicitacao: dataSolicitacao,
                     serial: serialValue,
                     cx: cxValue,
-                    quantidade: isNaN(qtdEquipamento) ? 1 : qtdEquipamento, 
+                    quantidade: isNaN(qtdEquipamento) ? 1 : qtdEquipamento,
                     peso: pesoGeral,
                     volume_caixa: 1 // Sempre 1 em todas as linhas, conforme solicitado
                 };
@@ -216,9 +216,9 @@ function initReversaForm() {
             updateLoadingProgress(100);
             await new Promise(resolve => setTimeout(resolve, 600));
             showLoading(false);
-            
+
             alert(`Sucesso! ${payload.length} registros foram importados para a operação ${operacao}.`);
-            
+
             // Limpar formulário
             form.reset();
             resetDropArea();
@@ -403,11 +403,11 @@ function initExportacoes() {
 
         filteredResults = getFilteredComparisonResults(comparisonResults, filters, reversaColumns);
         renderComparison(filteredResults, previewHeadRow, previewBody, summaryTotal, summaryMatched, summaryMissing, reversaColumns);
-        
+
         const hasResults = filteredResults.length > 0;
         exportConnectBtn.disabled = !hasResults;
         copyQualitorBtn.disabled = !hasResults;
-        
+
         const badge = document.getElementById('filteredCountInfo');
         if (badge) {
             badge.textContent = hasResults ? `${filteredResults.length} registros encontrados` : 'Nenhum registro encontrado';
@@ -481,7 +481,7 @@ function initExportacoes() {
                     rowData[formatColumnLabel(column)] = row.values[column];
                 }
             });
-            rowData['SITUAÇÃO ATLAS'] = row.atlasData.estado;
+            rowData['ESTADO ATLAS'] = row.atlasData.estado;
             rowData['LOCAL ATLAS'] = row.atlasData.nome_local;
             rowData.ENCONTRADO = row.status;
             return rowData;
@@ -507,7 +507,7 @@ function initExportacoes() {
             }
 
             await navigator.clipboard.writeText(serials);
-            
+
             // Feedback visual no botão
             const originalText = copyQualitorBtn.innerHTML;
             copyQualitorBtn.innerHTML = `
@@ -543,7 +543,7 @@ function initExportacoes() {
         for (let i = 0; i < validSerials.length; i += chunkSize) {
             const chunk = validSerials.slice(i, i + chunkSize);
             const encodedValues = chunk.map((serial) => `"${String(serial).replace(/"/g, '""')}"`).join(',');
-            const query = `${SUPABASE_URL}/rest/v1/base_atlas?select=enderecavel_principal,codigo_material_sap&enderecavel_principal=in.(${encodeURIComponent(encodedValues)})`;
+            const query = `${SUPABASE_URL}/rest/v1/base_atlas?select=enderecavel_principal,codigo_material_sap,modelo&enderecavel_principal=in.(${encodeURIComponent(encodedValues)})`;
 
             const response = await fetch(query, {
                 method: 'GET',
@@ -562,7 +562,10 @@ function initExportacoes() {
             rows.forEach((atlasRow) => {
                 const serial = String(atlasRow.enderecavel_principal || '').trim().toUpperCase();
                 if (!serial) return;
-                sapMap.set(serial, toDisplayValue(atlasRow.codigo_material_sap));
+                sapMap.set(serial, {
+                    sap: toDisplayValue(atlasRow.codigo_material_sap),
+                    modelo: toDisplayValue(atlasRow.modelo)
+                });
             });
         }
 
@@ -582,12 +585,14 @@ function initExportacoes() {
             const rowsForExport = filteredResults.map((row) => {
                 const serial = toDisplayValue(row.values.serial);
                 const serialKey = String(serial).trim().toUpperCase();
+                const atlasInfo = sapMap.get(serialKey) || {};
+                
                 return {
                     serial,
                     obs: '',
                     caixa: toDisplayValue(row.values.cx),
-                    sap: sapMap.get(serialKey) || '',
-                    tecnologia: toDisplayValue(row.values.operacao)
+                    sap: (atlasInfo.sap || '').replace(/^0+/, ''),
+                    tecnologia: atlasInfo.modelo || toDisplayValue(row.values.operacao)
                 };
             });
 
@@ -623,12 +628,12 @@ function initExportacoes() {
 
             // BUSCA DADOS DA VIEW (JÁ CRUZADOS NO BANCO)
             const res = await fetch(`${SUPABASE_URL}/rest/v1/vw_reversa_comparacao?select=*`, {
-                headers: { 
+                headers: {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
                 }
             });
-            
+
             if (!res.ok) throw new Error('Falha ao buscar dados da view');
             const rows = await res.json();
 
@@ -653,9 +658,9 @@ function initExportacoes() {
             // Colunas da reversa (originais)
             reversaColumns = [...defaultReversaColumns];
             const reversaSerialColumn = 'serial';
-            
+
             updateDynamicColumnsMap(reversaColumns, reversaSerialColumn);
-            
+
             comparisonResults = rows.map(row => ({
                 status: row.encontrado,
                 values: {
@@ -854,7 +859,7 @@ function formatDate(dateStr) {
         // Trata strings ISO e formatos comuns
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return dateStr;
-        
+
         // Ajuste de fuso horário para evitar problemas com datas "puras" (AAAA-MM-DD)
         // que o JS interpreta como UTC e pode mudar o dia
         if (typeof dateStr === 'string' && dateStr.length === 10 && dateStr.includes('-')) {
@@ -952,7 +957,7 @@ function renderComparison(results, previewHeadRow, previewBody, summaryTotal, su
     const headers = columns.concat(['estado_atlas', 'local_atlas', 'status']);
     previewHeadRow.innerHTML = headers.map((header) => {
         if (header === 'status') return '<th>ENCONTRADO</th>';
-        if (header === 'estado_atlas') return '<th>SITUAÇÃO ATLAS</th>';
+        if (header === 'estado_atlas') return '<th>ESTADO ATLAS</th>';
         if (header === 'local_atlas') return '<th>LOCAL ATLAS</th>';
         if (header === 'created_at') return '<th>DATA</th>';
         return `<th>${escapeHtml(formatColumnLabel(header))}</th>`;
